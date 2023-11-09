@@ -34,6 +34,7 @@ app.add_middleware(
 def crawl_url(url: str, option:str):
     print(option)
     decoded_url = unquote(url)
+    response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
     if option == "website":
         Crawler(urls=[decoded_url]).run()
         nameData = findName()
@@ -43,6 +44,10 @@ def crawl_url(url: str, option:str):
         findApi(decoded_url)
         response_data = {"option":option, "content":"아직 준비 중 입니다."}
     return response_data
+
+@app.post("/file/{option:path}")
+def file_process(option:str):
+    return {"option":option, "nameData":"이은혜", "personalData":"동래구 사직동 24", "url":"http://"}
 
 # @app.post("/file/{option:path}")
 # def file_process(option:str,file: any):
