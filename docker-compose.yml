@@ -1,0 +1,20 @@
+version: '3'
+services:
+  db:
+    image: mysql:latest
+    container_name: blacklist_mysql
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: blacklist_db
+      MYSQL_USER: blacklist
+      MYSQL_PASSWORD: listblack
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: root
+      TZ: Asia/Seoul
+    volumes:
+      - /etc/timezone:/etc/timezone:ro      # ubuntu os
+      - ./db/mysql/data:/var/lib/mysql
+      - ./db/mysql/init:/docker-entrypoint-initdb.d
+    platform: linux/x86_64
