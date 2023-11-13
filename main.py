@@ -7,6 +7,7 @@ from urllib.parse import quote, unquote
 from fastapi.responses import FileResponse
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
+import shutil
 
 
 # 함수
@@ -47,6 +48,9 @@ def crawl_url(url: str, option:str):
 
 @app.post("/file/{option:path}")
 def file_process(option:str):
+    try:
+        shutil.rmtree('re/resres2')
+    except: pass
     return {"option":option, "nameData":"이은혜", "personalData":"동래구 사직동 24", "url":"http://"}
 
 # @app.post("/file/{option:path}")
