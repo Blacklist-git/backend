@@ -31,7 +31,7 @@ app.add_middleware(
 
 
 
-@app.post("/crawl/{url:path}/{option:path}")
+@app.post("/server/crawl/{url:path}/{option:path}")
 def crawl_url(url: str, option:str):
     print(option)
     decoded_url = unquote(url)
@@ -40,7 +40,6 @@ def crawl_url(url: str, option:str):
         Crawler(urls=[decoded_url]).run()
         nameData = findName()
         Personal_info = PatternMatcher().run()
-        print("\n\n\n\n퍼스널인포\n\n\n\n"+Personal_info)
         Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
         response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
     elif option == "api":
@@ -48,7 +47,7 @@ def crawl_url(url: str, option:str):
         response_data = {"option":option, "content":"아직 준비 중 입니다."}
     return response_data
 
-@app.post("/file/{option:path}")
+@app.post("/server/file/{option:path}")
 def file_process(option:str):
     try:
         shutil.rmtree('re/resres2')
@@ -59,6 +58,15 @@ def file_process(option:str):
 # def file_process(option:str,file: any):
 #     print("어멍머어ㅓ미친친침치닟",file)
 #     return file
+
+@app.post("/server/savePDF")
+async def save_pdf(pdf_file: UploadFile = File(...)):
+    contents = await pdf_file.read()
+    
+    # 여기서 PDF 파일을 저장하거나 원하는 처리를 수행합니다.
+    # contents에는 PDF 파일의 바이너리 데이터가 들어 있습니다.
+    
+    return {"status": "success"}
 
 if __name__ == "__main__":
     import uvicorn
