@@ -40,6 +40,8 @@ def crawl_url(url: str, option:str):
         Crawler(urls=[decoded_url]).run()
         nameData = findName()
         Personal_info = PatternMatcher().run()
+        print("\n\n\n\n퍼스널인포\n\n\n\n"+Personal_info)
+        Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
         response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
     elif option == "api":
         findApi(decoded_url)

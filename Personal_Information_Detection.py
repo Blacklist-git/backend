@@ -32,7 +32,7 @@ class PatternMatcher:
         # with open('./file.txt', 'w', encoding='utf-8') as saved_data_file:
         for file_path in file_paths:
             with open(file_path, "r", encoding="utf-8") as file:
-                first_line = file.readline()
+                first_line = file.readline().replace('\n', '')
                 text = file.read()
                 save_data = save_data + first_line+"에서 찾은,"
                 for pattern, pattern_name in self.patterns:
