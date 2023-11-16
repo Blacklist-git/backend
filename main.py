@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
-
+import ssl
 
 # 함수
 from Save_all_text import Crawler
@@ -20,10 +20,11 @@ app = FastAPI()
 # os.chdir("/Users/baeyujeong/Desktop/api/")
 logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s", level=logging.INFO)
 # logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s", level=logging.DEBUG)
+origins = ["https://34.197.212.64", "https://www.clubblacklist.kro.kr/check"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 실제 배포 시에는 원하는 Origin을 명시합니다.
+    allow_origins=origins,  # 실제 배포 시에는 원하는 Origin을 명시합니다.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,6 +70,9 @@ async def save_pdf(pdf_file: UploadFile = File(...)):
     return {"status": "success"}
 
 if __name__ == "__main__":
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(certfile="/etc/letsencrypt/live/www.clubblaclist.kro.kr/fullchain.pem", keyfile="/etc/letsencrypt/live/www.clubblacklist.kro.kr/privkey.pem")
+
     import uvicorn
     # uvicorn main:app --reload
 
