@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   db:
     image: mysql:latest
@@ -14,7 +14,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
       TZ: Asia/Seoul
     volumes:
-      - /etc/timezone:/etc/timezone:ro      # ubuntu os
+      - /etc/timezone:/etc/timezone:ro # ubuntu os
       - ./db/mysql/data:/var/lib/mysql
       - ./db/mysql/init:/docker-entrypoint-initdb.d
     platform: linux/x86_64

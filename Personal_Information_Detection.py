@@ -4,6 +4,7 @@ import re
 class PatternMatcher:
     def __init__(self):
         self.patterns = [
+            # 시간남으면 디테일...해서 오탐 줄이기
             (r"(\d{6}[ ,-]-?[1-4]\d{6}|\d{6}[ ,-]?[1-4])", "주민등록번호로 추정되는 것"),  # 주민등록번호
             (r"([a-zA-Z]{1,2}\d{8})", "여권번호로 추정되는 것"),  # 여권번호
             (r"([01][0-9]{5}[[:space:]~-]+[1-8][0-9]{6}|[2-9][0-9]{5}[[:space:]~-]+[1256][0-9]{6])", "외국인등록번호로 추정되는 것"),  # 외국인등록번호
@@ -31,7 +32,7 @@ class PatternMatcher:
         # with open('./file.txt', 'w', encoding='utf-8') as saved_data_file:
         for file_path in file_paths:
             with open(file_path, "r", encoding="utf-8") as file:
-                first_line = file.readline()
+                first_line = file.readline().replace('\n', '')
                 text = file.read()
                 save_data = save_data + first_line+"에서 찾은,"
                 for pattern, pattern_name in self.patterns:
