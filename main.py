@@ -25,7 +25,7 @@ logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s", level=loggin
 origins = [
     "http://localhost:3000",  # 허용할 Origin을 여기에 추가
     "https://www.clubblacklist.kro.kr",
-    "https://34.197.212.64",
+    "https://34.197.212.64","https://clubblacklist.kro.kr",
     
 ]
 
