@@ -1,16 +1,16 @@
 import logging
-import os
-from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
-from fastapi import FastAPI, File, UploadFile,HTTPException
+from fastapi import FastAPI, File, UploadFile,HTTPException, Depends
 from urllib.parse import quote, unquote
-from fastapi.responses import FileResponse
-from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import shutil
 import ssl
-from datetime import datetime
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordBearer
+from db_connection import database, User, SessionLocal
+from security import create_jwt_token, hash_password, verify_password, SECRET_KEY, ALGORITHM
+from sqlalchemy.orm import Session
+from jose import JWTError, jwt
 
 # 함수
 from Save_all_text import Crawler
@@ -37,7 +37,86 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+SECRET_KEY = "your-secret-key"  # 서버 측에서 사용하는 시크릿 키
+ALGORITHM = "HS256"  # 알고리즘, 서버와 클라이언트 모두 동일해야 함
+
+async def get_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_name: str = payload.get("sub")
+        if user_name is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = await database.fetch_one(User.select().where(User.c.username == user_name))
+
+    if user:
+        return {"id": user["id"], "name": user["name"]}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@app.on_event("startup")
+async def startup_db_client():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await database.disconnect()
+
+@app.post("/server/register")
+async def register(data: dict, db: Session = Depends(get_db)):
+    username = data.get("idSend")
+    hashed_password = hash_password(data.get("pwSend"))
+    name = data.get("nameSend")
+    new_user = User(username=username, hashed_password=hashed_password, name=name)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {"message": "User registered successfully"}
+
+
+@app.post("/server/login")
+async def login(data: dict):
+    username = data.get("idSend")
+    password = data.get("pwSend")
+
+    user = await get_user(username)
+    
+    if not user or not verify_password(password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # 토큰 만료 시간 설정 (15분)
+    expires_delta = timedelta(minutes=15)
+    # 토큰 생성
+    token = create_jwt_token({"sub": username}, expires_delta)
+
+    return {"access_token": token, "token_type": "bearer"}
+
+@app.post("/server/check_duplicate")
+async def check_duplicate(data: dict):
+    existing_user = await database.fetch_one(User.select().where(User.c.username == data.get("idSend")))
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return {"message": "Username available"}
 
 @app.post("/server/crawl")
 def crawl_url(data:dict):
