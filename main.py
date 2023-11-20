@@ -1,16 +1,23 @@
 import logging
-import os
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, File, UploadFile,HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile,HTTPException
 from urllib.parse import quote, unquote
-from fastapi.responses import FileResponse
-from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import shutil
 import ssl
-from datetime import datetime
+from datetime import datetime, timedelta
+from fastapi.security import OAuth2PasswordBearer
+from db_connection import database, users
+from security import create_jwt_token, hash_password, verify_password
+from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi import FastAPI, Response
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+import os
+
 
 # 함수
 from Save_all_text import Crawler
@@ -25,7 +32,7 @@ logging.basicConfig(format="%(asctime)s %(levelname)s:%(message)s", level=loggin
 origins = [
     "http://localhost:3000",  # 허용할 Origin을 여기에 추가
     "https://www.clubblacklist.kro.kr",
-    "https://34.197.212.64",
+    "https://34.197.212.64","https://clubblacklist.kro.kr",
     
 ]
 
@@ -36,37 +43,110 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-@app.post("/server/crawl")
+async def get_user(username: str):
+    user = await database.fetch_one(users.select().where(users.c.username == username))
+    return user
+
+@app.on_event("startup")
+async def startup_db_client():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await database.disconnect()
+
+@app.post("/server/register")
+async def register(data:dict):
+    hashed_password = hash_password(data.get("pwSend"))
+    query = users.insert().values( username=data.get("idSend"), hashed_password=hashed_password)
+    await database.execute(query)
+
+
+    return {"message": "User registered successfully"}
+
+
+@app.post("/server/login")
+async def login(data: dict):
+    username = data.get("idSend")
+    password = data.get("pwSend")
+
+    user = await get_user(username)
+    
+    if not user or not verify_password(password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # 토큰 만료 시간 설정 (15분)
+    expires_delta = timedelta(minutes=15)
+    # 토큰 생성
+    token = create_jwt_token({"sub": username}, expires_delta)
+
+    return {"access_token": token, "token_type": "bearer"}
+
+@app.post("/server/check_duplicate")
+async def check_duplicate(data: dict):
+    existing_user = await database.fetch_one(users.select().where(users.c.username == data.get("idSend")))
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    return {"message": "Username available"}
+
+@app.post("/server/website")
 def crawl_url(data:dict):
+    try:
+        shutil.rmtree('re/resres2')
+    except: pass
     url = data.get("url")
     option = data.get("option")
     type = data.get("type")
     print(option)
     decoded_url = unquote(url)
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
-    if option == "website":
-        Crawler(urls=[decoded_url]).run()
-        nameData = findName()
-        Personal_info = PatternMatcher().run()
-        Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
-        response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
-    elif option == "api":
-        findApi(decoded_url)
-        response_data = {"option":option, "content":"아직 준비 중 입니다."}
+    Crawler(urls=[decoded_url]).run()
+    nameData = findName().crawl()
+    Personal_info = PatternMatcher().run()
+    Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
+    response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
     return response_data
 
-@app.post("/server/file/{option:path}")
-def file_process(option:str):
-    try:
-        shutil.rmtree('re/resres2')
-    except: pass
-    return {"option":option, "nameData":"이은혜", "personalData":"동래구 사직동 24", "url":"http://"}
+@app.post("/server/api")
+def api_url():
+    return {"option":"api", "nameData":"이은혜 오승민", "personalData":"동래구 사직동 24", "url":"http://"}
 
-# @app.post("/file/{option:path}")
-# def file_process(option:str,file: any):
-#     print("어멍머어ㅓ미친친침치닟",file)
-#     return file
+@app.post("/server/csv")
+async def file_process(file: UploadFile = File(...)):
+    try:
+        file_name = file.filename
+        file_content = findName.filed(file)
+        print(file_content.decode("utf-8"))
+
+        return findName.filed(file)
+
+    except Exception as e:
+        return f"파일을 읽는 중 오류 발생: {str(e)}"
+    
+@app.get("/server/download")
+def download_file():
+    file_path = "../csv/testdata.csv"
+
+    # 파일이 존재하는지 확인
+    if not os.path.exists(file_path):
+        return Response(content="File not found", status_code=404)
+
+    try:
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+    except Exception as e:
+        print(f"Error reading file: {e}")
+
+    # 파일 다운로드
+    headers = {
+        "Content-Disposition": f"attachment; filename={os.path.basename(file_path)}",
+        "Content-Type": "text/csv",
+    }
+
+    return StreamingResponse(iter([file_content]), headers=headers)
+
 
 @app.post("/server/savePDF")
 async def save_pdf(pdf_data: UploadFile = File(...)):
@@ -98,4 +178,5 @@ if __name__ == "__main__":
     # uvicorn main:app --reload
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 

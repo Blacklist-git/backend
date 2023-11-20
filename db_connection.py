@@ -1,17 +1,20 @@
-# pip3 install mysql-connector-python
-import mysql.connector
-import os
-from dotenv import load_dotenv
+from sqlalchemy import create_engine, Column, Integer, String, MetaData, Table
+from databases import Database
 
-load_dotenv()
+DATABASE_URL = "mysql+mysqlconnector://blacklist:blacklist1234@localhost/blacklist"
 
-mydb = mysql.connector.connect(
-    host=os.getenv('HOST'),
-    user='root',
-    passwd='root',
-    database=os.getenv('DATABASE')
+metadata = MetaData()
+
+users = Table(
+    "users",
+    metadata,
+    Column("id", Integer, primary_key=True, index=True,autoincrement=True),
+    Column("username", String(20), unique=True, index=True), 
+    Column("hashed_password", String(100)),
+    Column("name", String(50))
 )
 
-print(mydb)
+engine = create_engine(DATABASE_URL)
+metadata.create_all(engine, checkfirst=True)
 
-mydb.close()
+database = Database(DATABASE_URL)
