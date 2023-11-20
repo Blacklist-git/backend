@@ -1,6 +1,8 @@
 import glob
+import re
+import os
 
-def findName():
+class findName():
     # 성
     last_name = set()
     with open('all_last_names.txt', 'r', encoding='utf-8') as name_file:
@@ -24,39 +26,59 @@ def findName():
             combined = character + word
             combined_names.add(combined)
 
-    # 텍스트 파일 처리
-    text_files = glob.glob('re/resres2/find*.txt')
+    @classmethod
+    def crawl(cls):
+        # 텍스트 파일 처리
+        text_files = glob.glob('../re/resres2/find*.txt')
 
-    # savedData_file =  open('full_name.txt', 'w', encoding='utf-8')
-    saveData = ""
-
-    for text_file_path in text_files:
+        saveData = ""
         found_names = set()
-        count = 0
-        with open(text_file_path, 'r', encoding='utf-8') as text_file:
-            first_line = text_file.readline().replace('\n', '')
-            text = text_file.read()
 
-            for name in combined_names:
-                if name in text and len(name) >= 3:
-                    found_names.add(name)
-                    count = count + 1
+        for text_file_path in text_files:
+            count = 0
+            with open(text_file_path, 'r', encoding='utf-8') as text_file:
+                first_line = text_file.readline().replace('\n', '')
+                text = text_file.read()
+
+                for name in cls.combined_names:  # cls를 통해 클래스 변수에 접근
+                    if name in text and len(name) >= 3:
+                        found_names.add(name)
+                        count = count + 1
+
+            # 발견된 이름 저장
+            if found_names:
+                saveData = saveData + text_file_path + ',' + first_line + ',' + str({count}) + ','
+                for name in found_names:
+                    saveData = saveData + name + " "
+        return saveData
+    @classmethod
+    def filed(cls, file):
+        found_names = set()
+        file.file.seek(0)
+        file_name = file.filename
+        file_content = file.file.read().decode("utf-8")
+        print(file_content)
+
+        for name in cls.combined_names:
+            if name in file_content and len(name) >= 3:
+                print("1", name)
+                found_names.add(name)
 
         # 발견된 이름 저장
         if found_names:
-            print(f"type: {type(text_file_path)}")
-            print(text_file_path)
-            print(f"type: {type(first_line)}")
-            print(f"type: {type(count)}")
-            saveData = text_file_path+','+first_line+','+str({count})+','
+            print("dfs")
             for name in found_names:
-                saveData =saveData + name+" "
-                print(saveData)
-            print(f"type: {type(str(saveData))}")
-        return saveData
+                print("2", name)
+                anonymized_name = re.sub(r'[가-힣]', '*', name)
+                file_content = file_content.replace(name, anonymized_name)
 
-            #   파일에 텍스트 저장하기
-        #     savedData_file.write(f"파일 '{text_file_path}'에서 찾은 이름:\nurl : {first_line}발견한 이름 수 : {count}\n\n")
-        #     for name in found_names:
-        #         savedData_file.write(name + '\n')
-        # savedData_file.write(name + '\n\n\n')
+            # 파일에 수정된 내용 쓰기
+            os.makedirs("../csv", exist_ok=True)
+            with open(f"../csv/{file_name}", 'w', encoding='utf-8') as output_file:
+                output_file.write(file_content)
+
+        print("dsdsf")
+        print(file_content)
+
+        return file_content
+

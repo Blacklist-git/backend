@@ -1,5 +1,6 @@
 import logging
-from fastapi import FastAPI, File, UploadFile,HTTPException, Depends
+from urllib.parse import urljoin, urlparse
+from fastapi import FastAPI, File, UploadFile,HTTPException
 from urllib.parse import quote, unquote
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -7,10 +8,11 @@ import shutil
 import ssl
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
-from db_connection import database, User, SessionLocal
-from security import create_jwt_token, hash_password, verify_password, SECRET_KEY, ALGORITHM
-from sqlalchemy.orm import Session
+from db_connection import database, users
+from security import create_jwt_token, hash_password, verify_password
 from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+
 
 # 함수
 from Save_all_text import Crawler
@@ -37,41 +39,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
-SECRET_KEY = "your-secret-key"  # 서버 측에서 사용하는 시크릿 키
-ALGORITHM = "HS256"  # 알고리즘, 서버와 클라이언트 모두 동일해야 함
-
-async def get_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=401,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_name: str = payload.get("sub")
-        if user_name is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    user = await database.fetch_one(User.select().where(User.c.username == user_name))
-
-    if user:
-        return {"id": user["id"], "name": user["name"]}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
+async def get_user(username: str):
+    user = await database.fetch_one(users.select().where(users.c.username == username))
+    return user
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -82,14 +55,11 @@ async def shutdown_db_client():
     await database.disconnect()
 
 @app.post("/server/register")
-async def register(data: dict, db: Session = Depends(get_db)):
-    username = data.get("idSend")
+async def register(data:dict):
     hashed_password = hash_password(data.get("pwSend"))
-    name = data.get("nameSend")
-    new_user = User(username=username, hashed_password=hashed_password, name=name)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    query = users.insert().values( username=data.get("idSend"), hashed_password=hashed_password)
+    await database.execute(query)
+
 
     return {"message": "User registered successfully"}
 
@@ -113,39 +83,43 @@ async def login(data: dict):
 
 @app.post("/server/check_duplicate")
 async def check_duplicate(data: dict):
-    existing_user = await database.fetch_one(User.select().where(User.c.username == data.get("idSend")))
+    existing_user = await database.fetch_one(users.select().where(users.c.username == data.get("idSend")))
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     return {"message": "Username available"}
 
-@app.post("/server/crawl")
+@app.post("/server/website")
 def crawl_url(data:dict):
+    try:
+        shutil.rmtree('re/resres2')
+    except: pass
     url = data.get("url")
     option = data.get("option")
     decoded_url = unquote(url)
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
-    if option == "website":
-        Crawler(urls=[decoded_url]).run()
-        nameData = findName()
-        Personal_info = PatternMatcher().run()
-        Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
-        response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
-    elif option == "api":
-        findApi(decoded_url)
-        response_data = {"option":option, "content":"아직 준비 중 입니다."}
+    Crawler(urls=[decoded_url]).run()
+    nameData = findName().crawl()
+    Personal_info = PatternMatcher().run()
+    Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
+    response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
     return response_data
 
-@app.post("/server/file/{option:path}")
-def file_process(option:str):
-    try:
-        shutil.rmtree('re/resres2')
-    except: pass
-    return {"option":option, "nameData":"이은혜", "personalData":"동래구 사직동 24", "url":"http://"}
+@app.post("/server/api")
+def api_url():
+    return {"option":"api", "nameData":"이은혜 오승민", "personalData":"동래구 사직동 24", "url":"http://"}
 
-# @app.post("/file/{option:path}")
-# def file_process(option:str,file: any):
-#     print("어멍머어ㅓ미친친침치닟",file)
-#     return file
+@app.post("/server/csv")
+async def file_process(file: UploadFile = File(...)):
+    try:
+        file_name = file.filename
+        file_content = findName.filed(file)
+        print(file_content.decode("utf-8"))
+
+        return findName.filed(file)
+
+    except Exception as e:
+        return f"파일을 읽는 중 오류 발생: {str(e)}"
+
 
 @app.post("/server/savePDF")
 async def save_pdf(pdf_data: UploadFile = File(...)):
@@ -177,4 +151,5 @@ if __name__ == "__main__":
     # uvicorn main:app --reload
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
