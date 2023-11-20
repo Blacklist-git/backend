@@ -38,7 +38,7 @@ class PatternMatcher:
             with open(file_path, "r", encoding="utf-8") as file:
                 first_line = file.readline()
                 text = file.read()
-                save_data = save_data + first_line+"에서 찾은,"
+                # save_data = save_data + first_line+"에서 찾은,"
                 for pattern, pattern_name in self.patterns:
                     matches = re.finditer(pattern, text)
                     for match in matches:
