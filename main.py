@@ -12,6 +12,10 @@ from db_connection import database, users
 from security import create_jwt_token, hash_password, verify_password
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
+from fastapi import FastAPI, Response
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+import os
 
 
 # 함수
@@ -119,6 +123,28 @@ async def file_process(file: UploadFile = File(...)):
 
     except Exception as e:
         return f"파일을 읽는 중 오류 발생: {str(e)}"
+    
+@app.get("/server/download")
+def download_file():
+    file_path = "../csv/testdata.csv"
+
+    # 파일이 존재하는지 확인
+    if not os.path.exists(file_path):
+        return Response(content="File not found", status_code=404)
+
+    try:
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+    except Exception as e:
+        print(f"Error reading file: {e}")
+
+    # 파일 다운로드
+    headers = {
+        "Content-Disposition": f"attachment; filename={os.path.basename(file_path)}",
+        "Content-Type": "text/csv",
+    }
+
+    return StreamingResponse(iter([file_content]), headers=headers)
 
 
 @app.post("/server/savePDF")
