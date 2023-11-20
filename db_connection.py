@@ -5,7 +5,7 @@ DATABASE_URL = "mysql+mysqlconnector://blacklist:blacklist1234@localhost/blackli
 
 metadata = MetaData()
 
-users = Table(
+users = Table(  
     "users",
     metadata,
     Column("id", Integer, primary_key=True, index=True,autoincrement=True),
