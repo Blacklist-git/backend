@@ -1,4 +1,5 @@
 import logging
+import jwt
 from urllib.parse import urljoin, urlparse
 from fastapi import FastAPI, File, UploadFile,HTTPException
 from urllib.parse import quote, unquote
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 from db_connection import database, users
 from security import create_jwt_token, hash_password, verify_password
-from jose import JWTError, jwt
+# from jose import JWTError
 from fastapi import Depends, HTTPException, status
 from fastapi import FastAPI, Response
 from fastapi.responses import StreamingResponse
