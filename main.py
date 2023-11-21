@@ -1,6 +1,5 @@
 import logging
 from urllib.parse import urljoin, urlparse
-from bs4 import BeautifulSoup
 from fastapi import FastAPI, File, UploadFile,HTTPException
 from urllib.parse import quote, unquote
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +42,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_user(username: str):
@@ -98,8 +99,6 @@ def crawl_url(data:dict):
     except: pass
     url = data.get("url")
     option = data.get("option")
-    type = data.get("type")
-    print(option)
     decoded_url = unquote(url)
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
     Crawler(urls=[decoded_url]).run()
