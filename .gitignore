@@ -2,3 +2,10 @@
 __pycache__
 re
 .DS_Store
+ssl
+data/12
+db
+node_modules
+venv
+package-lock.json
+package.json

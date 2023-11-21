@@ -1,6 +1,7 @@
 import glob
 import re
 import phonenumbers
+import os
 
 
 class PatternMatcher:
@@ -74,3 +75,29 @@ class PatternMatcher:
             # with open('file.txt', 'a', encoding='utf-8') as saved_data_file:
             #     saved_data_file.write(f"{pattern_name}의 총 카운트: {count}\n")
         return save_data
+
+    def filed(self, file_path):  # file_path로 수정
+        with open(file_path, 'r', encoding='utf-8') as file:
+            file_content = file.read()
+            print("ddd", file_content)
+
+        for pattern, pattern_name in self.patterns:
+            matches = re.finditer(pattern, file_content)
+            for match in matches:
+                if pattern_name == "전화번호로 추정되는 것":
+                    cleaned_number = self.preprocess_phone_number(match.group())
+                    parsed_number = phonenumbers.parse("+82" + cleaned_number)
+                    if phonenumbers.is_valid_number(parsed_number):
+                        if not (pattern_name + " : " + match.group()) in file_content:
+                            # CSV에서 asterisk (*)로 대체
+                            file_content = file_content.replace(match.group(), '*')
+                elif not (pattern_name + " : " + match.group()) in file_content:
+                    # CSV에서 asterisk (*)로 대체
+                    file_content = file_content.replace(match.group(), '*')
+
+        os.makedirs("./csv", exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as output_file:
+            output_file.write(file_content)
+
+        return file_content
+    

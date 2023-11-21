@@ -13,7 +13,7 @@ from db_connection import database, users
 from security import create_jwt_token, hash_password, verify_password
 # from jose import JWTError
 from fastapi import Depends, HTTPException, status
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, File, UploadFile
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 import os
@@ -117,58 +117,57 @@ def api_url():
 async def file_process(file: UploadFile = File(...)):
     try:
         file_name = file.filename
-        file_content = findName.filed(file)
-        print(file_content.decode("utf-8"))
-
-        return findName.filed(file)
+        findName.filed(file)
+        pattern_matcher_instance = PatternMatcher()
+        pattern_matcher_instance.filed(f"./csv/{file_name}")
+        try :
+            response_data = {"nameData": file_name, "option":"csv"}
+            print("이건 잘됨")
+            print(type(response_data))
+            return dict(response_data)
+        except:
+            print("왜안됨?")
 
     except Exception as e:
         return f"파일을 읽는 중 오류 발생: {str(e)}"
     
 @app.get("/server/download")
-def download_file():
-    file_path = "../csv/testdata.csv"
-
-    # 파일이 존재하는지 확인
-    if not os.path.exists(file_path):
-        return Response(content="File not found", status_code=404)
-
+def download_file(filename: str):
     try:
+        file_path = f"./csv/{filename}"
+
+        print(filename)
+
+        # 파일이 존재하는지 확인
+        if not os.path.exists(file_path):
+            return Response(content="File not found", status_code=404)
+
         with open(file_path, "rb") as file:
             file_content = file.read()
-    except Exception as e:
-        print(f"Error reading file: {e}")
 
-    # 파일 다운로드
-    headers = {
-        "Content-Disposition": f"attachment; filename={os.path.basename(file_path)}",
-        "Content-Type": "text/csv",
+        # 파일 다운로드
+        headers = {
+    "Content-Disposition": f"attachment; filename={os.path.basename(file_path)}",
+    "Content-Type": "text/csv; charset=utf-8",  # 인코딩 명시
     }
 
-    return StreamingResponse(iter([file_content]), headers=headers)
-
+        return StreamingResponse(iter([file_content]), headers=headers)
+    except Exception as e:
+        logging.error(f"Error: {e}")
+        return Response(content="Internal Server Error", status_code=500)
 
 @app.post("/server/savePDF")
-async def save_pdf(pdf_data: UploadFile = File(...)):
-    try:
-        # 클라이언트에서 전송한 PDF 데이터를 바이너리로 읽음
-        pdf_binary = await pdf_data.read()
-        current_time = datetime.now().strftime("%Y%m%d%H%M%S")
-        file_name = f"Report_{current_time}.pdf"
+async def save_pdf(pdfFile: UploadFile = File(...)):
+   # Access the file data
+   print("dsf")
+   file_data = await pdfFile.read()
+   current_time = datetime.now().strftime("%Y%m%d%H%M%S")
+   file_name = f"Report_{current_time}.pdf"
+   os.makedirs("./pdf", exist_ok=True)
+   file_path = f"./pdf/{file_name}"
+   with open(file_path, "wb") as f:
+       f.write(file_data)
 
-        # PDF 파일 저장
-        file_path = f"/var/www/web-services/backend/upload/{file_name}"  # 저장 경로를 적절히 수정하세요.
-        with open(file_path, "wb") as f:
-            f.write(pdf_binary)
-
-        return JSONResponse(content={"message": "PDF saved successfully"})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-    
-    # 여기서 PDF 파일을 저장하거나 원하는 처리를 수행합니다.
-    # contents에는 PDF 파일의 바이너리 데이터가 들어 있습니다.
-    
-    return {"status": "success"}
 
 if __name__ == "__main__":
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
