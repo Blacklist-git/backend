@@ -29,7 +29,7 @@ class findName():
     @classmethod
     def crawl(cls):
         # 텍스트 파일 처리
-        text_files = glob.glob('../re/resres2/find*.txt')
+        text_files = glob.glob('./re/resres2/find*.txt')
 
         saveData = ""
         found_names = set()
@@ -73,8 +73,8 @@ class findName():
                 file_content = file_content.replace(name, anonymized_name)
 
             # 파일에 수정된 내용 쓰기
-            os.makedirs("../csv", exist_ok=True)
-            with open(f"../csv/{file_name}", 'w', encoding='utf-8') as output_file:
+            os.makedirs("./csv", exist_ok=True)
+            with open(f"./csv/{file_name}", 'w', encoding='utf-8') as output_file:
                 output_file.write(file_content)
 
         print("dsdsf")

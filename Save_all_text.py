@@ -59,7 +59,7 @@ class Crawler:
                 html = self.download_url(url, base_url)
                 self.crawl(url, base_url)  # base_url을 전달
                 # print(self.download_url(url, base_url))
-                output_dir = "../re/resres2"
+                output_dir = "./re/resres2"
                 os.makedirs(output_dir, exist_ok=True)
                 output_file_name = f"{output_dir}/find{self.file_counter}.txt"
                 with open(output_file_name, "w", encoding="utf-8") as file:

@@ -25,7 +25,7 @@ class PatternMatcher:
 
     def run(self):
         # 와일드카드 패턴을 사용하여 파일 목록 가져오기
-        file_paths = glob.glob('../re/resres2/find*.txt')
+        file_paths = glob.glob('./re/resres2/find*.txt')
         print(file_paths)
 
         # 각 패턴별로 이름과 카운트를 유지
