@@ -24,6 +24,7 @@ class PatternMatcher:
         file_paths = glob.glob('re/resres2/find*.txt')
         print(file_paths)
 
+
         # 각 패턴별로 이름과 카운트를 유지
         pattern_counts = {pattern_name: 0 for _, pattern_name in self.patterns}
         print(pattern_counts)
@@ -48,4 +49,4 @@ class PatternMatcher:
                 save_data = save_data + pattern_name +"의 갯수는 : "+str(count)+","
             # with open('file.txt', 'a', encoding='utf-8') as saved_data_file:
             #     saved_data_file.write(f"{pattern_name}의 총 카운트: {count}\n")
-        return save_data
+        return save_data, pattern_counts

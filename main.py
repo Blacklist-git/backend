@@ -30,21 +30,33 @@ app.add_middleware(
 )
 
 
-
 @app.post("/crawl/{url:path}/{option:path}")
 def crawl_url(url: str, option:str):
     print(option)
+    grade = ""
     decoded_url = unquote(url)
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
     if option == "website":
         Crawler(urls=[decoded_url]).run()
-        nameData = findName()
-        Personal_info = PatternMatcher().run()
+        nameData, nameCount = findName()
+        Personal_info, Personal_count = PatternMatcher().run()
         response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
+        Count = Personal_count + nameCount
+        
+        if Count < 2:
+            grade = "D"
+        elif 2 <= Count < 5:
+            grade = "C"
+        elif 5 <= Count < 10:
+            grade = "B"
+        elif Count >= 10:
+            grade = "A"
+        print(grade)
+        
     elif option == "api":
         findApi(decoded_url)
         response_data = {"option":option, "content":"아직 준비 중 입니다."}
-    return response_data
+    return response_data, grade
 
 @app.post("/file/{option:path}")
 def file_process(option:str):

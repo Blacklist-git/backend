@@ -53,7 +53,7 @@ def findName():
                 saveData =saveData + name+" "
                 print(saveData)
             print(f"type: {type(str(saveData))}")
-        return saveData
+        return saveData, count
 
             #   파일에 텍스트 저장하기
         #     savedData_file.write(f"파일 '{text_file_path}'에서 찾은 이름:\nurl : {first_line}발견한 이름 수 : {count}\n\n")
