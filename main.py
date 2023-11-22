@@ -9,13 +9,15 @@ import ssl
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 from db_connection import database, users
-from security import create_jwt_token, hash_password, verify_password
+from security import create_jwt_token, hash_password, verify_password, SECRET_KEY
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi import FastAPI, Response, File, UploadFile
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 import os
+import glob
+from sqlalchemy import select
 
 
 # 함수
@@ -43,11 +45,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class SomeSpecificException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_user(username: str):
     user = await database.fetch_one(users.select().where(users.c.username == username))
+    return user
+
+async def get_info(token: str):
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
+    username = payload.get("sub")
+
+    query = select(users).where(users.c.username == username)
+    user = await database.fetch_one(query)
+
     return user
 
 @app.on_event("startup")
@@ -61,7 +78,7 @@ async def shutdown_db_client():
 @app.post("/server/register")
 async def register(data:dict):
     hashed_password = hash_password(data.get("pwSend"))
-    query = users.insert().values( username=data.get("idSend"), hashed_password=hashed_password)
+    query = users.insert().values( username=data.get("idSend"), hashed_password=hashed_password, name = data.get("nameSend"))
     await database.execute(query)
 
 
@@ -85,6 +102,22 @@ async def login(data: dict):
 
     return {"access_token": token, "token_type": "bearer"}
 
+@app.get("/server/user/info")
+async def get_user_info(token: str = Depends(oauth2_scheme)):
+    try:
+        user_info = await get_info(token)
+        print(type(user_info["name"]))
+        print("\n\n\n\n호출\n\n\n\n\n")
+        print(type(user_info))
+        # print(user_info)
+        print(type(user_info["name"]))
+        print(user_info["name"])
+        processed_info = {"username": user_info["name"], "id": user_info["username"]}  # 예시
+        return processed_info
+    except SomeSpecificException as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/server/check_duplicate")
 async def check_duplicate(data: dict):
     existing_user = await database.fetch_one(users.select().where(users.c.username == data.get("idSend")))
@@ -101,12 +134,20 @@ def crawl_url(data:dict):
     option = data.get("option")
     decoded_url = unquote(url)
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
+    nameData =""
+    Personal_info =""
     Crawler(urls=[decoded_url]).run()
-    nameData = findName().crawl()
-    Personal_info = PatternMatcher().run()
-    Personal_info = Personal_info.replace("URL : "+url+"에서 찾은", "")
-    response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
-    return response_data
+    file_paths = glob.glob('./re/resres2/find*.txt')
+    print("file path : " , file_paths)
+    try :
+        for file_path in file_paths:
+            print("\n\n\n\npath : ", file_path, "\n\n\n")
+            nameData = nameData + findName().crawl(file_path)
+            print(nameData)
+            Personal_info = Personal_info + PatternMatcher().run(file_path)
+            response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
+        return response_data
+    except: pass
 
 @app.post("/server/api")
 def api_url():

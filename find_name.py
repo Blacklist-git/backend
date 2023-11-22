@@ -1,4 +1,4 @@
-import glob
+
 import re
 import os
 
@@ -27,29 +27,24 @@ class findName():
             combined_names.add(combined)
 
     @classmethod
-    def crawl(cls):
+    def crawl(cls, text_file_path):
         # 텍스트 파일 처리
-        text_files = glob.glob('./re/resres2/find*.txt')
 
         saveData = ""
         found_names = set()
 
-        for text_file_path in text_files:
-            count = 0
-            with open(text_file_path, 'r', encoding='utf-8') as text_file:
-                first_line = text_file.readline().replace('\n', '')
-                text = text_file.read()
+        count = 0
+        with open(text_file_path, 'r', encoding='utf-8') as text_file:
+            text = text_file.read()
 
-                for name in cls.combined_names:  # cls를 통해 클래스 변수에 접근
-                    if name in text and len(name) >= 3:
-                        found_names.add(name)
-                        count = count + 1
+            for name in cls.combined_names:  # cls를 통해 클래스 변수에 접근
+                if name in text and len(name) >= 3:
+                    found_names.add(name)
 
-            # 발견된 이름 저장
-            if found_names:
-                saveData = saveData + text_file_path + ',' + first_line + ',' + str({count}) + ','
-                for name in found_names:
-                    saveData = saveData + name + " "
+        # 발견된 이름 저장
+        if found_names:
+            for name in found_names:
+                saveData = saveData + name + " "
         return saveData
     @classmethod
     def filed(cls, file):

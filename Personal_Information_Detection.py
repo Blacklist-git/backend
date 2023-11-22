@@ -15,7 +15,7 @@ class PatternMatcher:
             (r"^[12]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])", "생년월일로 추정될 수 있는 날짜"),  # 날짜(yyyy-mm-dd)
             (r"^(19|20)\d{2}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[0-1])", "생년월일로 추정될 수 있는 날짜"),  # 날짜(yyyymmdd)
             (r"(\d{2,3}[ ,\-]?\d{3,4}[ ,\-]?\d{4})", "전화번호로 추정되는 것"),  # 전화번호
-            (r"([0-9,\-]{3,6}\-[0-9,\-]{2,6}\-[0-9,\-])", "계좌번호로 추정되는 것"),  # 계좌번호
+            # (r"([0-9,\-]{3,6}\-[0-9,\-]{2,6}\-[0-9,\-])", "계좌번호로 추정되는 것"),  # 계좌번호
             (r"([\w!-_\.]+@[\w!-_\.]+\.[\w]{2,3})", "메일 주소로 추정되는 것"),  # 메일주소
             (r"\b[a-z0-9._%\+\-—|]+@[a-z0-9.\-—|]+\.[a-z|]{2,6}\b", "메일 주소로 추정되는 것")  # 메일주소
         ]
@@ -24,35 +24,30 @@ class PatternMatcher:
         cleaned_number = ''.join(char for char in phone_number if char.isdigit())
         return cleaned_number
 
-    def run(self):
+    def run(self, file_path):
         # 와일드카드 패턴을 사용하여 파일 목록 가져오기
-        file_paths = glob.glob('./re/resres2/find*.txt')
-        print(file_paths)
 
         # 각 패턴별로 이름과 카운트를 유지
         pattern_counts = {pattern_name: 0 for _, pattern_name in self.patterns}
-        print(pattern_counts)
         save_data = ""
         # 각 파일에서 패턴을 찾아서 출력 및 카운트
         # with open('./file.txt', 'w', encoding='utf-8') as saved_data_file:
-        for file_path in file_paths:
-            with open(file_path, "r", encoding="utf-8") as file:
-                first_line = file.readline()
-                text = file.read()
-                # save_data = save_data + first_line+"에서 찾은,"
-                for pattern, pattern_name in self.patterns:
-                    matches = re.finditer(pattern, text)
-                    for match in matches:
-                        if pattern_name == "전화번호로 추정되는 것":
-                            cleaned_number = self.preprocess_phone_number(match.group())
-                            parsed_number = phonenumbers.parse("+82" + cleaned_number)
-                            if phonenumbers.is_valid_number(parsed_number):
-                                if not (pattern_name + " : " + match.group()) in save_data:
-                                    save_data = save_data + pattern_name + " : " + match.group() + ","
-                                    pattern_counts[pattern_name] += 1
-                        elif not (pattern_name+" : " + match.group()) in save_data:
-                            save_data = save_data + pattern_name+" : " + match.group()+","
-                            pattern_counts[pattern_name] += 1
+        with open(file_path, "r", encoding="utf-8") as file:
+            text = file.read()
+            # save_data = save_data + first_line+"에서 찾은,"
+            for pattern, pattern_name in self.patterns:
+                matches = re.finditer(pattern, text)
+                for match in matches:
+                    if pattern_name == "전화번호로 추정되는 것":
+                        cleaned_number = self.preprocess_phone_number(match.group())
+                        parsed_number = phonenumbers.parse("+82" + cleaned_number)
+                        if phonenumbers.is_valid_number(parsed_number):
+                            if not (pattern_name + " : " + match.group()) in save_data:
+                                save_data = save_data + pattern_name + " : " + match.group() + ","
+                                pattern_counts[pattern_name] += 1
+                    elif not (pattern_name+" : " + match.group()) in save_data:
+                        save_data = save_data + pattern_name+" : " + match.group()+","
+                        pattern_counts[pattern_name] += 1
 
         # 총 카운트 출력
         for pattern_name, count in pattern_counts.items():
