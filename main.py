@@ -1,7 +1,8 @@
 import logging
+import json
 import jwt
 from urllib.parse import urljoin, urlparse
-from fastapi import FastAPI, File, UploadFile,HTTPException
+from fastapi import FastAPI, File, UploadFile,HTTPException, Form
 from urllib.parse import quote, unquote
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -19,7 +20,7 @@ from io import BytesIO
 import os
 import glob
 from sqlalchemy import select
-
+from fastapi.responses import FileResponse
 
 # 함수
 from Save_all_text import Crawler
@@ -51,34 +52,6 @@ class SomeSpecificException(Exception):
         self.message = message
         super().__init__(message)
 
-
-@app.post("/crawl/{url:path}/{option:path}")
-def crawl_url(url: str, option:str):
-    print(option)
-    grade = ""
-    decoded_url = unquote(url)
-    response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
-    if option == "website":
-        Crawler(urls=[decoded_url]).run()
-        nameData, nameCount = findName()
-        Personal_info, Personal_count = PatternMatcher().run()
-        response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
-        Count = Personal_count + nameCount
-        
-        if Count < 2:
-            grade = "D"
-        elif 2 <= Count < 5:
-            grade = "C"
-        elif 5 <= Count < 10:
-            grade = "B"
-        elif Count >= 10:
-            grade = "A"
-        print(grade)
-        
-    elif option == "api":
-        findApi(decoded_url)
-        response_data = {"option":option, "content":"아직 준비 중 입니다."}
-    return response_data, grade
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_user(username: str):
@@ -164,16 +137,36 @@ def crawl_url(data:dict):
     response_data = {"option":option, "nameData":"", "personalData":"", "url":decoded_url}
     nameData =""
     Personal_info =""
+    count=0
     Crawler(urls=[decoded_url]).run()
     file_paths = glob.glob('./re/resres2/find*.txt')
     print("file path : " , file_paths)
     try :
         for file_path in file_paths:
+            patternCount=0
+            nameCount = 0
             print("\n\n\n\npath : ", file_path, "\n\n\n")
-            nameData = nameData + findName().crawl(file_path)
-            print(nameData)
-            Personal_info = Personal_info + PatternMatcher().run(file_path)
-            response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url}
+            new_name, nameCount = findName().crawl(file_path)
+            nameData = nameData + new_name
+            new_info, patternCount = PatternMatcher().run(file_path)
+            Personal_info = Personal_info + new_info
+            count = int(nameCount)+int(patternCount)
+            try:
+                print("lll")
+                if count < 2:
+                    grade = "D"
+                elif 2 <= count < 5:
+                    grade = "C"
+                elif 5 <= count < 10:
+                    grade = "B"
+                elif count >= 10:
+                    grade = "A"
+                print(grade)
+            except:
+                print("왜")
+            response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url, "grade":grade}
+            try : print(response_data)
+            except : print("dhodkseho")
         return response_data
     except: pass
 
@@ -223,6 +216,21 @@ def download_file(filename: str):
     except Exception as e:
         logging.error(f"Error: {e}")
         return Response(content="Internal Server Error", status_code=500)
+    
+@app.post("/server/create_file")
+async def create_file(data:dict):
+    decoded_data = data.get("data")
+    file_name= data.get("file_name")
+    try:
+        with open(f"./txt/{file_name}.txt", "w", encoding="utf-8") as file:
+            file.write(decoded_data)
+        return {"message": "File created successfully"}
+    except Exception as e: 
+        raise HTTPException(status_code=500, detail=f"Error creating file: {str(e)}")
+
+@app.get("/server/download_txt/{name}")
+async def download_file(name:str):
+    return FileResponse(f"./txt/{name}.txt", filename=name+".txt")
 
 @app.post("/server/savePDF")
 async def save_pdf(pdfFile: UploadFile = File(...)):

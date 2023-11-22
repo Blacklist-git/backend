@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, MetaData, Table
 from databases import Database
 
-DATABASE_URL = "mysql+mysqlconnector://root:root@localhost/blacklist"
+DATABASE_URL = "mysql+mysqlconnector://blacklist:blacklist1234@localhost/blacklist"
 
 metadata = MetaData()
 

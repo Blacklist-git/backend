@@ -40,12 +40,13 @@ class findName():
             for name in cls.combined_names:  # cls를 통해 클래스 변수에 접근
                 if name in text and len(name) >= 3:
                     found_names.add(name)
+                    count = count+1
 
         # 발견된 이름 저장
         if found_names:
             for name in found_names:
                 saveData = saveData + name + " "
-        return saveData
+        return saveData, count
     @classmethod
     def filed(cls, file):
         found_names = set()
