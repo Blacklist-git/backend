@@ -45,7 +45,6 @@ class PatternMatcher:
         # with open('./file.txt', 'w', encoding='utf-8') as saved_data_file:
         with open(file_path, "r", encoding="utf-8") as file:
             text = file.read()
-            # save_data = save_data + first_line+"에서 찾은,"
             for pattern, pattern_name in self.patterns:
                 matches = re.finditer(pattern, text)
                 for match in matches:
@@ -68,6 +67,7 @@ class PatternMatcher:
                 totalCount += count
             # with open('file.txt', 'a', encoding='utf-8') as saved_data_file:
             #     saved_data_file.write(f"{pattern_name}의 총 카운트: {count}\n")
+        print(save_data)
         return save_data, totalCount
 
     def filed(self, file_path):  # file_path로 수정

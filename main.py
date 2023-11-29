@@ -164,7 +164,7 @@ def crawl_url(data:dict):
                 print(grade)
             except:
                 print("왜")
-            response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url, "grade":grade}
+            response_data = {"option":option, "nameData": nameData, "personalData":Personal_info, "url": decoded_url, "grade":grade, }
             try : print(response_data)
             except : print("dhodkseho")
         return response_data
